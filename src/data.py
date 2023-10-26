@@ -7,18 +7,18 @@ import numpy as np
 import os
 
 
-def load_data(dataset):
-    if dataset == 'ruarobot':
+def load_data(dataset_name, path='datasets'):
+    if dataset_name == 'ruarobot':
         # Load the csv files
-        train_pos = pd.read_csv(f'src/{dataset}/data/pos.train.csv')
-        train_neg = pd.read_csv(f'src/{dataset}/data/neg.train.csv')
-        train_amb = pd.read_csv(f'src/{dataset}/data/amb.train.csv')
-        val_pos = pd.read_csv(f'src/{dataset}/data/pos.val.csv')
-        val_neg = pd.read_csv(f'src/{dataset}/data/neg.val.csv')
-        val_amb = pd.read_csv(f'src/{dataset}/data/amb.val.csv')
-        test_pos = pd.read_csv(f'src/{dataset}/data/pos.test.csv')
-        test_neg = pd.read_csv(f'src/{dataset}/data/neg.test.csv')
-        test_amb = pd.read_csv(f'src/{dataset}/data/amb.test.csv')
+        train_pos = pd.read_csv(f'{path}/{dataset_name}/data/pos.train.csv')
+        train_neg = pd.read_csv(f'{path}/{dataset_name}/data/neg.train.csv')
+        train_amb = pd.read_csv(f'{path}/{dataset_name}/data/amb.train.csv')
+        val_pos = pd.read_csv(f'{path}/{dataset_name}/data/pos.val.csv')
+        val_neg = pd.read_csv(f'{path}/{dataset_name}/data/neg.val.csv')
+        val_amb = pd.read_csv(f'{path}/{dataset_name}/data/amb.val.csv')
+        test_pos = pd.read_csv(f'{path}/{dataset_name}/data/pos.test.csv')
+        test_neg = pd.read_csv(f'{path}/{dataset_name}/data/neg.test.csv')
+        test_amb = pd.read_csv(f'{path}/{dataset_name}/data/amb.test.csv')
 
         # Concatenate training and validation data
         train_pos = pd.concat([train_pos, val_pos])
@@ -47,10 +47,10 @@ def load_data(dataset):
         y_train_pos = np.concatenate((y_train_pos, y_train_amb), axis=0)
         y_test_pos = np.concatenate((y_test_pos, y_test_amb), axis=0)
     
-    elif dataset == 'medical':
+    elif dataset_name == 'medical':
         # Load the csv file
-        expert = pd.read_csv(f'src/{dataset}/data/medicheck-expert.csv')
-        med_neg = pd.read_csv(f'src/{dataset}/data/medicheck-neg.csv')
+        expert = pd.read_csv(f'{path}/{dataset_name}/data/medicheck-expert.csv')
+        med_neg = pd.read_csv(f'{path}/{dataset_name}/data/medicheck-neg.csv')
 
         # Select the X and y columns, then the rows that belongs to classes 1 to 3, and finally replace the labes with only 1
         expert = expert[['query', 'query-label-expert']]
@@ -80,12 +80,12 @@ def load_data(dataset):
         y_train_neg = train_neg['query-label-expert'].to_numpy()
         y_test_neg = test_neg['query-label-expert'].to_numpy()
 
-    return X_train_pos, X_train_neg, X_test_pos, X_test_neg, y_train_pos, y_train_neg, y_test_pos, y_test_neg
+    return [X_train_pos, X_train_neg, X_test_pos, X_test_neg, y_train_pos, y_train_neg, y_test_pos, y_test_neg]
 
 
-def load_align_mat(dataset, encoding_model, data, load_saved_align_mat):
+def load_align_mat(dataset_name, encoding_model_name, data, load_saved_align_mat, path='datasets'):
     if load_saved_align_mat:
-        align_mat = np.load(f'src/{dataset}/embeddings/{encoding_model}/align_mat.npy')
+        align_mat = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/align_mat.npy')
 
     else:
         # Rotate the data, aligning them to the axis
@@ -94,24 +94,24 @@ def load_align_mat(dataset, encoding_model, data, load_saved_align_mat):
         align_mat = np.linalg.solve(a=vh, b=np.eye(len(data[0])))
 
         # Save the alignment matrix
-        path = f'src/{dataset}/embeddings/{encoding_model}'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        np.save(f'{path}/align_mat.npy', align_mat)
+        save_path = f'{path}/{dataset_name}/embeddings/{encoding_model_name}'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        np.save(f'{save_path}/align_mat.npy', align_mat)
 
     return align_mat
 
 
-def load_embeddings(dataset, encoding_model, load_saved_embeddings, load_saved_align_mat=None, data=None):
+def load_embeddings(dataset_name, encoding_model, encoding_model_name, perturbation_name='original', load_saved_embeddings=None, load_saved_align_mat=None, data=None, path='datasets'):
     if load_saved_embeddings:
-        X_train_pos = np.load(f'src/{dataset}/embeddings/{encoding_model}/X_train_pos.npy')
-        X_train_neg = np.load(f'src/{dataset}/embeddings/{encoding_model}/X_train_neg.npy')
-        X_test_pos = np.load(f'src/{dataset}/embeddings/{encoding_model}/X_test_pos.npy')
-        X_test_neg = np.load(f'src/{dataset}/embeddings/{encoding_model}/X_test_neg.npy')
-        y_train_pos = np.load(f'src/{dataset}/embeddings/{encoding_model}/y_train_pos.npy')
-        y_train_neg = np.load(f'src/{dataset}/embeddings/{encoding_model}/y_train_neg.npy')
-        y_test_pos = np.load(f'src/{dataset}/embeddings/{encoding_model}/y_test_pos.npy')
-        y_test_neg = np.load(f'src/{dataset}/embeddings/{encoding_model}/y_test_neg.npy')
+        X_train_pos = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/X_train_pos.npy')
+        X_train_neg = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/X_train_neg.npy')
+        X_test_pos = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/X_test_pos.npy')
+        X_test_neg = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/X_test_neg.npy')
+        y_train_pos = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/y_train_pos.npy')
+        y_train_neg = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/y_train_neg.npy')
+        y_test_pos = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/y_test_pos.npy')
+        y_test_neg = np.load(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}/y_test_neg.npy')
 
     else:
         X_train_pos = data[0]
@@ -131,24 +131,24 @@ def load_embeddings(dataset, encoding_model, load_saved_embeddings, load_saved_a
         X_test_neg = encoder.encode(X_test_neg, show_progress_bar=False)
 
         # Rotate the data
-        align_mat = load_align_mat(dataset, encoding_model, X_train_pos, load_saved_align_mat)
+        align_mat = load_align_mat(dataset_name, encoding_model_name, X_train_pos, load_saved_align_mat, path='datasets')
         X_train_pos = np.matmul(X_train_pos, align_mat)
         X_train_neg = np.matmul(X_train_neg, align_mat)
         X_test_pos = np.matmul(X_test_pos, align_mat)
         X_test_neg = np.matmul(X_test_neg, align_mat)
 
         # Save the rotated embedded sentences and labels
-        path = f'src/{dataset}/embeddings/{encoding_model}'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        np.save(f'{path}/X_train_pos.npy', X_train_pos)
-        np.save(f'{path}/X_train_neg.npy', X_train_neg)
-        np.save(f'{path}/X_test_pos.npy', X_test_pos)
-        np.save(f'{path}/X_test_neg.npy', X_test_neg)
-        np.save(f'{path}/y_train_pos.npy', y_train_pos)
-        np.save(f'{path}/y_train_neg.npy', y_train_neg)
-        np.save(f'{path}/y_test_pos.npy', y_test_pos)
-        np.save(f'{path}/y_test_neg.npy', y_test_neg)
+        save_path = f'{path}/{dataset_name}/embeddings/{encoding_model_name}/{perturbation_name}'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        np.save(f'{save_path}/X_train_pos.npy', X_train_pos)
+        np.save(f'{save_path}/X_train_neg.npy', X_train_neg)
+        np.save(f'{save_path}/X_test_pos.npy', X_test_pos)
+        np.save(f'{save_path}/X_test_neg.npy', X_test_neg)
+        np.save(f'{save_path}/y_train_pos.npy', y_train_pos)
+        np.save(f'{save_path}/y_train_neg.npy', y_train_neg)
+        np.save(f'{save_path}/y_test_pos.npy', y_test_pos)
+        np.save(f'{save_path}/y_test_neg.npy', y_test_neg)
 
     # # Print the shape of the rotated embedded sentences
     # print(f'Train pos sentence embeddings shape: {X_train_pos.shape}')
@@ -159,9 +159,9 @@ def load_embeddings(dataset, encoding_model, load_saved_embeddings, load_saved_a
     return X_train_pos, X_train_neg, X_test_pos, X_test_neg, y_train_pos, y_train_neg, y_test_pos, y_test_neg
 
 
-def load_pca(dataset, encoding_model, load_saved_pca, X_train_pos, X_train_neg, X_test_pos, X_test_neg,  n_components=30):
+def load_pca(dataset_name, encoding_model_name, load_saved_pca, X_train_pos, X_train_neg, X_test_pos, X_test_neg,  n_components=30, path='datasets'):
     if load_saved_pca:
-        with open(f'src/{dataset}/embeddings/{encoding_model}/pca.pkl', 'rb') as pickle_file:
+        with open(f'{path}/{dataset_name}/embeddings/{encoding_model_name}/pca.pkl', 'rb') as pickle_file:
             data_pca = pk.load(pickle_file)
 
     else:
@@ -170,10 +170,10 @@ def load_pca(dataset, encoding_model, load_saved_pca, X_train_pos, X_train_neg, 
         # PCA data
         data_pca = PCA(n_components=n_components).fit(data)
         # Save the PCA
-        path = f'src/{dataset}/embeddings/{encoding_model}'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        with open(f'{path}/pca.pkl', 'wb') as pickle_file:
+        save_path = f'{path}/{dataset_name}/embeddings/{encoding_model_name}'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        with open(f'{save_path}/pca.pkl', 'wb') as pickle_file:
             pk.dump(data_pca, pickle_file)
 
     X_train_pos = data_pca.transform(X_train_pos)

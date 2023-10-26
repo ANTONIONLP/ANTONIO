@@ -5,41 +5,22 @@ Structure
 ------------
 ```
 .
-├── results                                          - folder containing all the final results
-├── src
+├── datasets
 │   ├── medical
-│   │   ├── data                                     - folder containing the dataset
-│   │   ├── embeddings                               - folder containing the embedded data
-│   │   ├── hyperrectangles                          - folder containing the hyper-rectangles
-│   │   ├── models
-│   │   │   ├── onnx                                 - folder containing the onnx networks
-│   │   │   └── tf                                   - folder containing the tensorflow networks
-│   │   └── perturbations                            - folder containing the perturbations and their embeddings
+│   │   └── data                                     - folder containing the Medical dataset
 │   │
-│   ├── ruarobot
-│   │   ├── data                                     - folder with the dataset
-│   │   ├── embeddings                               - folder with the embedded data
-│   │   ├── hyperrectangles                          - folder with the hyper-rectangles
-│   │   ├── models
-│   │   │   ├── onnx                                 - folder with the onnx networks
-│   │   │   └── tf                                   - folder with the tensorflow networks
-│   │   └── perturbations                            - folder containing the perturbations and their embeddings
-│   │
+│   └── ruarobot
+│       └── data                                     - folder with the R-U-A-Robot dataset
+│   
+├── src
 │   ├── data.py                                      - file for loading and processing the data
+│   ├── example.py                                   - file containing an example running the full pipeline
 │   ├── hyperrectangles.py                           - file for creating hyper-rectangles
 │   ├── perturbations.py                             - file for creating, saving and embedding the perturbations
+│   ├── property_parser.py                           - file for creating the properties in VNNlib or Marabou formats
 │   ├── results.py                                   - file for calculating results
 │   └── train.py                                     - file for training the networks
 │
-├── verification
-│   ├── marabou
-│   │   ├── medical                                  - folder containing marabou properties for this dataset
-│   │   ├── ruarobot                                 - folder containing marabou properties for this dataset
-│   │   ├── outputs                                  - folder containing marabou outputs
-│   │   ├── marabout_property_parser.py              - file for creating the marabou properties
-│   │   └── marabout_queries.py                      - file for creating the marabou queries
-│
-├── example.py                                       - file for reproducing the paper's experiments
 ├── requirements.txt                                 - pip requirements
 └── tf2onnx.sh                                       - script for creating onnx networks from tensorflow
 ```
@@ -54,13 +35,17 @@ Install the dependencies:
 ```
 pip3 install -r requirements.txt
 ```
-To reproduce the example also install:
-* [Marabou](https://github.com/eth-sri/eran)
+The character and word-level perturbations implemented do not require any further installation. To use the sentence-level perturbations implemented install:
 * [Replicate](https://replicate.com/) (This API requires a subscription)
 
-Reproducing Experiments and Results
+To verify the hyper-rectangles also install a verifier:
+* [Marabou](https://github.com/NeuralNetworkVerification/Marabou)
+* [ERAN](https://github.com/eth-sri/eran)
+* [α,β-CROWN](https://github.com/Verified-Intelligence/alpha-beta-CROWN/tree/main)
+
+Instructions
 -------------
-To process the data, create the hyper-rectangles, train the networks, create the Marabou queries and calculate the metrics, run:
+To run the example:
 ```
-python3 main.py
+python3 src/example.py
 ```

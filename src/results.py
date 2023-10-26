@@ -1,17 +1,14 @@
-from src.data import load_data, load_embeddings, load_pca, prepare_data_for_training
-from src.perturbations import embed_perturbations
-from src.hyperrectangles import load_hyperrectangles, print_hypercubes_statistics
+from data import load_embeddings, load_pca, prepare_data_for_training
+from hyperrectangles import load_hyperrectangles, print_hyperrectangles_statistics
 from sentence_transformers import util
 from tensorflow import keras
 import tensorflow as tf
-import pickle as pk
 import pandas as pd
 import numpy as np
-import random
 import os
 
 
-def calculate_accuracy(datasets, encoding_models, batch_size):
+def calculate_accuracy(datasets, encoding_models, batch_size, path='datasets'):
 
     results_dict = {
                     'Dataset': [],
@@ -26,14 +23,13 @@ def calculate_accuracy(datasets, encoding_models, batch_size):
                     }
 
     for dataset in datasets:
-        X_train_pos_not_embedded, X_train_neg_not_embedded, X_test_pos_not_embedded, X_test_neg_not_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg = load_data(dataset)
         for encoding_model, encoding_name in encoding_models.items():
-            X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg = load_embeddings(dataset, encoding_model, load_saved_embeddings=True, load_saved_align_mat=True, data=[X_train_pos_not_embedded, X_train_neg_not_embedded, X_test_pos_not_embedded, X_test_neg_not_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg])
-            X_train_pos, X_train_neg, X_test_pos, X_test_neg = load_pca(dataset, encoding_model, True, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
+            X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg = load_embeddings(dataset, encoding_model, encoding_name, perturbation_name='original', load_saved_embeddings=True, path=path)
+            X_train_pos, X_train_neg, X_test_pos, X_test_neg = load_pca(dataset, encoding_name, True, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
             train_dataset, test_dataset = prepare_data_for_training(X_train_pos, X_train_neg, X_test_pos, X_test_neg, y_train_pos, y_train_neg, y_test_pos, y_test_neg, batch_size)
 
             tf.get_logger().setLevel('ERROR')
-            directory = f'src/{dataset}/models/tf/{encoding_model}'
+            directory = f'{path}/{dataset}/models/tf/{encoding_name}'
             for filename in sorted(os.listdir(directory)):
                 f = os.path.join(directory, filename)
                 if os.path.isdir(f):
@@ -131,14 +127,14 @@ def calculate_accuracy(datasets, encoding_models, batch_size):
                 mean_std_dict['Test Recall'].append(f'{np.mean(recall_test):.4f} ± {np.std(recall_test):.4f}')
                 mean_std_dict['Test F1'].append(f'{np.mean(f1_test):.4f} ± {np.std(f1_test):.4f}')
 
-    path = f'results/'
-    if not os.path.exists(path):
-        os.makedirs(path)
-    pd.DataFrame(mean_std_dict).to_csv(f'{path}/results_accuracy.csv', index=False)
+    save_path = f'results/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    pd.DataFrame(mean_std_dict).to_csv(f'{save_path}/results_accuracy.csv', index=False)
     return
 
 
-def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, batch_size):
+def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, batch_size, path='datasets'):
 
     results_dict = {
                     'Dataset': [],
@@ -157,11 +153,11 @@ def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, b
             X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg = [], [], [], [], [], [], [], []
             for perturbation in perturbations:
                 if X_train_pos_embedded == []:
-                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg = embed_perturbations(dataset, perturbation, encoding_model, load_saved_perturbations=True)
-                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded = load_pca(dataset, encoding_model, True, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
+                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg = load_embeddings(dataset, encoding_model, encoding_name, perturbation, load_saved_embeddings=True, path=path)
+                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded = load_pca(dataset, encoding_name, True, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
                 else:
-                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p, y_train_pos_p, y_train_neg_p, y_test_pos_p, y_test_neg_p = embed_perturbations(dataset, perturbation, encoding_model, load_saved_perturbations=True)
-                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p = load_pca(dataset, encoding_model, True, X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p)
+                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p, y_train_pos_p, y_train_neg_p, y_test_pos_p, y_test_neg_p = load_embeddings(dataset, encoding_model, encoding_name, perturbation, load_saved_embeddings=True, path=path)
+                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p = load_pca(dataset, encoding_name, True, X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p)
                     X_train_pos_embedded = np.concatenate((X_train_pos_embedded, X_train_pos_embedded_p))
                     X_train_neg_embedded = np.concatenate((X_train_neg_embedded, X_train_neg_embedded_p))
                     X_test_pos_embedded = np.concatenate((X_test_pos_embedded, X_test_pos_embedded_p))
@@ -174,7 +170,7 @@ def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, b
             train_dataset, test_dataset = prepare_data_for_training(X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, y_train_pos, y_train_neg, y_test_pos, y_test_neg, batch_size)
 
             tf.get_logger().setLevel('ERROR')
-            directory = f'src/{dataset}/models/tf/{encoding_model}'
+            directory = f'{path}/{dataset}/models/tf/{encoding_name}'
             for filename in sorted(os.listdir(directory)):
                 f = os.path.join(directory, filename)
                 if os.path.isdir(f):
@@ -252,7 +248,7 @@ def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, b
     for dataset in unique_datasets:
         for encoding_model in unique_encoding_models:
             for model in unique_models:
-                model_df = results_df.loc[(results_df['Dataset'] == dataset) & (results_df['Encoding Model'] == encoding_model) & (results_df['Model'] == model)]
+                model_df = results_df.loc[(results_df['Dataset'] == dataset) & (results_df['Encoding Model'] == encoding_name) & (results_df['Model'] == model)]
 
                 precision_train = model_df['Train Precision']
                 recall_train  = model_df['Train Recall']
@@ -263,7 +259,7 @@ def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, b
                 f1_test = model_df['Test F1']
                 
                 mean_std_dict['Dataset'].append(dataset)
-                mean_std_dict['Encoding Model'].append(encoding_model)
+                mean_std_dict['Encoding Model'].append(encoding_name)
                 mean_std_dict['Model'].append(model)
                 mean_std_dict['Train Precision'].append(f'{np.mean(precision_train):.4f} ± {np.std(precision_train):.4f}')
                 mean_std_dict['Train Recall'].append(f'{np.mean(recall_train):.4f} ± {np.std(recall_train):.4f}')
@@ -272,10 +268,10 @@ def calculate_perturbations_accuracy(datasets, encoding_models, perturbations, b
                 mean_std_dict['Test Recall'].append(f'{np.mean(recall_test):.4f} ± {np.std(recall_test):.4f}')
                 mean_std_dict['Test F1'].append(f'{np.mean(f1_test):.4f} ± {np.std(f1_test):.4f}')
 
-    path = f'results/'
-    if not os.path.exists(path):
-        os.makedirs(path)
-    pd.DataFrame(mean_std_dict).to_csv(f'{path}/results_perturbations_accuracy.csv', index=False)
+    save_path = f'results/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    pd.DataFrame(mean_std_dict).to_csv(f'{save_path}/results_perturbations_accuracy.csv', index=False)
     return
 
 
@@ -392,12 +388,12 @@ def calculate_marabou_results(datasets, encoding_models):
                     # verified_hyperrectangles_dict['Rectangles List'].append(np.array(verified_df['Rectangle Number'].unique()))
                     np.save(f'{indices_path}/{dataset}_{encoding_model}_{model}_{hypercube}.npy', verified_df['Rectangle Number'].unique())
 
-    path = f'results/'
-    if not os.path.exists(path):
-        os.makedirs(path)
+    save_path = f'results/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     marabou_results_df = pd.DataFrame(marabou_mean_dict)
     # marabou_results_df = marabou_results_df.pivot(index=['Dataset', 'Encoding Model', 'Model'], columns='Hypercube', values='Percentage').reset_index()
-    marabou_results_df.to_csv(f'{path}/results_marabou.csv', index=False)
+    marabou_results_df.to_csv(f'{save_path}/results_marabou.csv', index=False)
 
     # verified_hyperrectangles_df = pd.DataFrame(verified_hyperrectangles_dict)
     # # verified_hyperrectangles_df = verified_hyperrectangles_df.pivot(index=['Dataset', 'Encoding Model', 'Model'], columns='Hypercube', values='Rectangles List').reset_index()
@@ -406,7 +402,7 @@ def calculate_marabou_results(datasets, encoding_models):
     return
 
 
-def calculate_number_of_sentences_inside_the_verified_hyperrectangles(datasets, encoding_models, perturbations, h_names):
+def calculate_number_of_sentences_inside_the_verified_hyperrectangles(datasets, encoding_models, perturbations, h_names, path='datasets'):
     verified_hyperrectangles_df = pd.read_csv('results/results_marabou.csv')
     unique_models = verified_hyperrectangles_df['Model'].unique()
 
@@ -434,11 +430,11 @@ def calculate_number_of_sentences_inside_the_verified_hyperrectangles(datasets, 
             X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded = [], [], [], []
             for perturbation in perturbations:
                 if X_train_pos_embedded == []:
-                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, _, _, _, _ = embed_perturbations(dataset, perturbation, encoding_model, load_saved_perturbations=True)
-                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded = load_pca(dataset, encoding_model, True, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
+                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded, _, _, _, _ = load_embeddings(dataset, encoding_model, encoding_name, perturbation, load_saved_embeddings=True, path=path)
+                    X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded = load_pca(dataset, encoding_name, True, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
                 else:
-                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p, _, _, _, _ = embed_perturbations(dataset, perturbation, encoding_model, load_saved_perturbations=True)
-                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p = load_pca(dataset, encoding_model, True, X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p)
+                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p, _, _, _, _ = load_embeddings(dataset, encoding_model, encoding_name, perturbation, load_saved_embeddings=True, path=path)
+                    X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p = load_pca(dataset, encoding_name, True, X_train_pos_embedded_p, X_train_neg_embedded_p, X_test_pos_embedded_p, X_test_neg_embedded_p)
                     X_train_pos_embedded = np.concatenate((X_train_pos_embedded, X_train_pos_embedded_p))
                     X_train_neg_embedded = np.concatenate((X_train_neg_embedded, X_train_neg_embedded_p))
                     X_test_pos_embedded = np.concatenate((X_test_pos_embedded, X_test_pos_embedded_p))
@@ -449,10 +445,10 @@ def calculate_number_of_sentences_inside_the_verified_hyperrectangles(datasets, 
                     print(f'{dataset} {encoding_name} {model} {h}')
 
                     indices = np.load(f'verification/marabou/indices/{dataset}_{encoding_name}_{model}_{h}.npy')
-                    hyperrectangles = load_hyperrectangles(dataset, encoding_model, h_name, load_saved_hyperrectangles=True)
+                    hyperrectangles = load_hyperrectangles(dataset, encoding_name, h_name, load_saved_hyperrectangles=True)
                     hyperrectangles = np.take(hyperrectangles, indices, axis=0)
                     
-                    train_pos_percentage, test_pos_percentage, train_neg_percentage, test_neg_percentage, train_pos_n, test_pos_n, train_neg_n, test_neg_n = print_hypercubes_statistics(hyperrectangles, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
+                    train_pos_percentage, test_pos_percentage, train_neg_percentage, test_neg_percentage, train_pos_n, test_pos_n, train_neg_n, test_neg_n = print_hyperrectangles_statistics(hyperrectangles, X_train_pos_embedded, X_train_neg_embedded, X_test_pos_embedded, X_test_neg_embedded)
 
                     results_dict['Dataset'].append(dataset)
                     results_dict['Encoding Model'].append(encoding_name)
@@ -478,7 +474,7 @@ def calculate_number_of_sentences_inside_the_verified_hyperrectangles(datasets, 
     return
 
 
-def calculate_cosine_perturbations_filtering(datasets, encoding_models, perturbations):
+def calculate_cosine_perturbations_filtering(datasets, encoding_models, perturbations, path='datasets'):
     cosine_dict = {
         'Dataset': [],
         'Encoding Model': [],
@@ -488,18 +484,13 @@ def calculate_cosine_perturbations_filtering(datasets, encoding_models, perturba
     }
 
     for dataset in datasets:
-        X_train_pos_not_embedded, X_train_neg_not_embedded, X_test_pos_not_embedded, X_test_neg_not_embedded, _, _, _, _ = load_data(dataset)
-
         for encoding_model, encoding_name in encoding_models.items():
-            with open(f'src/{dataset}/embeddings/{encoding_model}/pca.pkl', 'rb') as pickle_file:
-                data_pca = pk.load(pickle_file)
-
-            X_train_pos, X_train_neg, _, _, _, _, _, _ = load_embeddings(dataset, encoding_model, load_saved_embeddings=True)
+            X_train_pos, X_train_neg, _, _, _, _, _, _ = load_embeddings(dataset, encoding_model, encoding_name, perturbation_name='original', load_saved_embeddings=True, path=path)
 
             for perturbation in perturbations:
-                X_train_pos_p, X_train_neg_p, _, _, _, _, _, _ = embed_perturbations(dataset, perturbation, encoding_model, load_saved_perturbations=True)
-                train_pos_indexes = np.load(f'src/{dataset}/perturbations/{perturbation}/indexes/train_pos_indexes.npy')
-                train_neg_indexes = np.load(f'src/{dataset}/perturbations/{perturbation}/indexes/train_neg_indexes.npy')
+                X_train_pos_p, X_train_neg_p, _, _, _, _, _, _ = load_embeddings(dataset, encoding_model, encoding_name, perturbation, load_saved_embeddings=True, path=path)
+                train_pos_indexes = np.load(f'{path}/{dataset}/perturbations/{perturbation}/indexes/train_pos_indexes.npy')
+                train_neg_indexes = np.load(f'{path}/{dataset}/perturbations/{perturbation}/indexes/train_neg_indexes.npy')
                 
                 p_total = len(X_train_pos_p)
                 n_total = len(X_train_neg_p)
@@ -536,8 +527,8 @@ def calculate_cosine_perturbations_filtering(datasets, encoding_models, perturba
                 cosine_dict['Positive'].append(f'{p}/{p_total} ({p_percentage:.2f}\%)')
                 cosine_dict['Negative'].append(f'{n}/{n_total} ({n_percentage:.2f}\%)')
 
-    path = f'results/'
-    if not os.path.exists(path):
-        os.makedirs(path)
-    pd.DataFrame(cosine_dict).to_csv(f'{path}/results_cosine_perturbations_filtering.csv', index=False)
+    save_path = f'results/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    pd.DataFrame(cosine_dict).to_csv(f'{save_path}/results_cosine_perturbations_filtering.csv', index=False)
     return

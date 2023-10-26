@@ -2,9 +2,14 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 import time
+import os
 
 
-def train_base(model, train_dataset, test_dataset, epochs, from_logits=False):
+def train_base(model, train_dataset, test_dataset, epochs, seed=None, from_logits=False):
+    if seed:
+        tf.random.set_seed(seed)
+        np.random.seed(seed)
+    
     optimizer = keras.optimizers.Adam()
     ce_batch_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=from_logits)
 
@@ -52,11 +57,15 @@ def train_base(model, train_dataset, test_dataset, epochs, from_logits=False):
         test_loss_metric.reset_states()
 
         print(f"Train acc: {float(train_acc):.4f}, Train loss: {float(train_loss):.4f} --- Test acc: {float(test_acc):.4f}, Test loss: {float(test_loss):.4f} --|-- Time: {(time.time() - start_time):.2f}s")
-
+    
     return model
 
 
-def train_adversarial(model, train_dataset, test_dataset, hypercubes, epochs, batch_size, n_samples, pgd_steps, alfa=1, beta=1, eps_multiplier=1000, from_logits=False):
+def train_adversarial(model, train_dataset, test_dataset, hyperrectangles, epochs, batch_size, n_samples, pgd_steps, alfa=1, beta=1, eps_multiplier=1000, seed=None, from_logits=False):
+    if seed:
+        tf.random.set_seed(seed)
+        np.random.seed(seed)
+
     optimizer = keras.optimizers.Adam()
     ce_batch_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=from_logits)
     pgd_batch_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=from_logits)
@@ -85,18 +94,18 @@ def train_adversarial(model, train_dataset, test_dataset, hypercubes, epochs, ba
         
         #########################################PGD####################################################
         pgd_dataset = []
-        np.random.shuffle(hypercubes)
-        for hypercube in hypercubes[:n_samples]:
-            t_hypercube = np.transpose(hypercube)
+        np.random.shuffle(hyperrectangles)
+        for hyperrectangle in hyperrectangles[:n_samples]:
+            t_hyperrectangle = np.transpose(hyperrectangle)
 
             # Calculate the epsilon for each dimension as ((dim[1] - dim[0]) / (pgd_steps * eps_multiplier))
             eps = []
-            for d in hypercube:
+            for d in hyperrectangle:
                 eps.append((d[1] - d[0]) / (pgd_steps * eps_multiplier))
             
-            # Generate a pgd point from the hypercube 
+            # Generate a pgd point from the hyperrectangle 
             pgd_point = []
-            for d in hypercube:
+            for d in hyperrectangle:
                 pgd_point.append(np.random.uniform(d[0], d[1]))
             # PGD attack on the image
             pgd_point = tf.convert_to_tensor([pgd_point], dtype=tf.float32)
@@ -111,7 +120,7 @@ def train_adversarial(model, train_dataset, test_dataset, hypercubes, epochs, ba
                 # Get the sign of the gradients to create the perturbation
                 signed_grad = tf.sign(gradient)
                 pgd_point = pgd_point + signed_grad * eps
-                pgd_point = tf.clip_by_value(pgd_point, t_hypercube[0], t_hypercube[1])
+                pgd_point = tf.clip_by_value(pgd_point, t_hyperrectangle[0], t_hyperrectangle[1])
                 # print(f"PGD step: {pgd_step + 1}", end="\r")
 
             # Concatenate the pgd points

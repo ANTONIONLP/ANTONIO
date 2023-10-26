@@ -1,4 +1,3 @@
-from src.data import load_align_mat
 from sentence_transformers import SentenceTransformer
 from nltk.stem.wordnet import WordNetLemmatizer
 from random import randint, seed
@@ -13,18 +12,18 @@ import re
 import os
 
 
-def save_perturbations(dataset, perturbation, data):
+def create_perturbations(datasaet_name, perturbation, data, path='datasets'):
     if perturbation == 'character':
         perturbations = [char_swapping, char_replacement, char_deletion, char_insertion, char_repetition]
     elif perturbation == 'word':
         perturbations = [word_deletion, word_repetition, word_negation, word_ordering, word_singular_plural_verb, word_verb_tense]
     seed(42)
 
-    path_sentences = f'src/{dataset}/perturbations/{perturbation}/sentences'
+    path_sentences = f'{path}/{datasaet_name}/perturbations/{perturbation}/sentences'
     if not os.path.exists(path_sentences):
         os.makedirs(path_sentences)
         
-    path_indexes = f'src/{dataset}/perturbations/{perturbation}/indexes'
+    path_indexes = f'{path}/{datasaet_name}/perturbations/{perturbation}/indexes'
     if not os.path.exists(path_indexes):
         os.makedirs(path_indexes)
 
@@ -86,8 +85,6 @@ def save_perturbations(dataset, perturbation, data):
         np.save(f'{path_indexes}/test_neg_indexes.npy', test_neg_index)
     
     elif perturbation == 'vicuna':
-        os.environ["REPLICATE_API_TOKEN"] = "r8_PDBpz3DCxwbqQFuLwL6vB2D9odu6HcT36mJV9"
-
         # Train positive
         t2 = time.time()
         tt = 0
@@ -122,7 +119,7 @@ def save_perturbations(dataset, perturbation, data):
         X_train_pos_perturbed = []
         y_train_pos_perturbed = []
         train_pos_index = []
-        with open(f"src/{dataset}/perturbations/{perturbation}/sentences/X_train_pos_raw.csv") as csvfile:
+        with open(f"src/{datasaet_name}/perturbations/{perturbation}/sentences/X_train_pos_raw.csv") as csvfile:
             file = csv.reader(csvfile, delimiter=',')
             for row in file:
                 if row[2].isdigit():
@@ -177,7 +174,7 @@ def save_perturbations(dataset, perturbation, data):
         X_train_neg_perturbed = []
         y_train_neg_perturbed = []
         train_neg_index = []
-        with open(f"src/{dataset}/perturbations/{perturbation}/sentences/X_train_neg_raw.csv") as csvfile:
+        with open(f"src/{datasaet_name}/perturbations/{perturbation}/sentences/X_train_neg_raw.csv") as csvfile:
             file = csv.reader(csvfile, delimiter=',')
             for row in file:
                 if row[2].isdigit():
@@ -229,7 +226,7 @@ def save_perturbations(dataset, perturbation, data):
         X_test_pos_perturbed = []
         y_test_pos_perturbed = []
         test_pos_index = []
-        with open(f"src/{dataset}/perturbations/{perturbation}/sentences/X_test_pos_raw.csv") as csvfile:
+        with open(f"src/{datasaet_name}/perturbations/{perturbation}/sentences/X_test_pos_raw.csv") as csvfile:
             file = csv.reader(csvfile, delimiter=',')
             for row in file:
                 if row[2].isdigit():
@@ -281,7 +278,7 @@ def save_perturbations(dataset, perturbation, data):
         X_test_neg_perturbed = []
         y_test_neg_perturbed = []
         test_neg_index = []
-        with open(f"src/{dataset}/perturbations/{perturbation}/sentences/X_test_neg_raw.csv") as csvfile:
+        with open(f"src/{datasaet_name}/perturbations/{perturbation}/sentences/X_test_neg_raw.csv") as csvfile:
             file = csv.reader(csvfile, delimiter=',')
             for row in file:
                 if row[2].isdigit():
@@ -299,67 +296,7 @@ def save_perturbations(dataset, perturbation, data):
         np.save(f'{path_sentences}/y_test_neg.npy', y_test_neg_perturbed)
         np.save(f'{path_indexes}/test_neg_indexes.npy', test_neg_index)
             
-    return
-
-
-def embed_perturbations(dataset, perturbation, encoding_model, load_saved_perturbations):
-    if load_saved_perturbations:
-        X_train_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/X_train_pos.npy')
-        X_train_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/X_train_neg.npy')
-        X_test_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/X_test_pos.npy')
-        X_test_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/X_test_neg.npy')
-        y_train_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/y_train_pos.npy')
-        y_train_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/y_train_neg.npy')
-        y_test_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/y_test_pos.npy')
-        y_test_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}/y_test_neg.npy')
-    
-    else:
-        X_train_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/X_train_pos.npy')
-        X_train_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/X_train_neg.npy')
-        X_test_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/X_test_pos.npy')
-        X_test_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/X_test_neg.npy')
-        y_train_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/y_train_pos.npy')
-        y_train_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/y_train_neg.npy')
-        y_test_pos = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/y_test_pos.npy')
-        y_test_neg = np.load(f'src/{dataset}/perturbations/{perturbation}/sentences/y_test_neg.npy')
-
-        X_train_neg = np.array([i for i in X_train_neg if i])
-        y_train_neg = y_train_neg[:(len(X_train_neg))]
-
-        # Embed the sentences
-        encoder = SentenceTransformer(f'{encoding_model}')
-        X_train_pos = encoder.encode(X_train_pos, show_progress_bar=True)
-        X_train_neg = encoder.encode(X_train_neg, show_progress_bar=True)
-        X_test_pos = encoder.encode(X_test_pos, show_progress_bar=True)
-        X_test_neg = encoder.encode(X_test_neg, show_progress_bar=True)
-
-        # Rotate the data
-        align_mat = load_align_mat(dataset, encoding_model, data=None, load_saved_align_mat=True)
-        X_train_pos = np.matmul(X_train_pos, align_mat)
-        X_train_neg = np.matmul(X_train_neg, align_mat)
-        X_test_pos = np.matmul(X_test_pos, align_mat)
-        X_test_neg = np.matmul(X_test_neg, align_mat)
-
-        # Save the rotated embedded sentences and labels
-        path = f'src/{dataset}/perturbations/{perturbation}/embeddings/{encoding_model}'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        np.save(f'{path}/X_train_pos.npy', X_train_pos)
-        np.save(f'{path}/X_train_neg.npy', X_train_neg)
-        np.save(f'{path}/X_test_pos.npy', X_test_pos)
-        np.save(f'{path}/X_test_neg.npy', X_test_neg)
-        np.save(f'{path}/y_train_pos.npy', y_train_pos)
-        np.save(f'{path}/y_train_neg.npy', y_train_neg)
-        np.save(f'{path}/y_test_pos.npy', y_test_pos)
-        np.save(f'{path}/y_test_neg.npy', y_test_neg)
-    
-    # # Print the shape of the rotated embedded sentences
-    # print(f'Train pos sentence embeddings shape: {X_train_pos.shape}')
-    # print(f'Train neg sentence embeddings shape: {X_train_neg.shape}')
-    # print(f'Test pos sentence embeddings shape: {X_test_pos.shape}')
-    # print(f'Test neg sentence embeddings shape: {X_test_neg.shape}')
-
-    return X_train_pos, X_train_neg, X_test_pos, X_test_neg, y_train_pos, y_train_neg, y_test_pos, y_test_neg
+    return [X_train_pos_perturbed, X_train_neg_perturbed, X_test_pos_perturbed, X_test_neg_perturbed, y_train_pos_perturbed, y_train_neg_perturbed, y_test_pos_perturbed, y_test_neg_perturbed]
 
 
 # Character perturbations

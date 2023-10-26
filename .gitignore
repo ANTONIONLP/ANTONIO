@@ -136,14 +136,5 @@ dmypy.json
 *.blg
 
 # Project
-**/tf/*
-**/outputs/*
-**/properties/*
-**/queries/*
-**/perturbations/*/embeddings
-**/polyjuice-main
-**/Marabou/medical
-**/Marabou/ruarobot
-**/indices/*
 *.zip
 .DS_Store
