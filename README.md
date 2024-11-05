@@ -1,6 +1,9 @@
 ANTONIO - Abstract iNterpreTation fOr Nlp verIficatiOn
 ========
 
+For detailed information of the design, refer to [ANTONIO: Towards a Systematic Method of Generating NLP Benchmarks for Verification](https://easychair.org/publications/paper/9ZGS) and [NLP Verification: Towards a General Methodology for Certifying Robustness](https://arxiv.org/abs/2403.10144).
+ANTONIO has also been used to produce the [safeNLP](https://github.com/ANTONIONLP/safeNLP) benchmark used in [VNN-COMP 2024](https://sites.google.com/view/vnn2024).
+
 Structure
 ------------
 ```
